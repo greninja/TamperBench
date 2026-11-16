@@ -1,0 +1,36 @@
+# accelerate FSDP config for the issue #59 benchmark (2 GPUs, one machine).
+# Adapted from src/tamperbench/whitebox/defenses/tar/_orig/configs/accel_config_2_gpu.yaml.
+# Differences from the TAR config, and why:
+#   - fsdp_auto_wrap_policy: TRANSFORMER_BASED_WRAP -> shard per decoder layer. TAR wraps layers
+#     in its own code; here the HF Trainer does it, using the model's `_no_split_modules`.
+#   - fsdp_state_dict_type: FULL_STATE_DICT -> a saved checkpoint is a normal HF checkpoint that
+#     the existing vLLM evals can load (SHARDED_STATE_DICT would not be).
+#   - fsdp_cpu_ram_efficient_loading: false -> every rank loads the weights on CPU first. Uses more
+#     CPU RAM (~16 GB per process for 8B) but avoids meta-device issues with resize_token_embeddings.
+#   - fsdp_use_orig_params: true -> safe default with HF Trainer; needed later for LoRA.
+#   - mixed_precision: 'no' -> precision is set by the script (see --fsdp-mixed-precision).
+compute_environment: LOCAL_MACHINE
+debug: false
+distributed_type: FSDP
+downcast_bf16: 'no'
+fsdp_config:
+  fsdp_auto_wrap_policy: TRANSFORMER_BASED_WRAP
+  fsdp_backward_prefetch: BACKWARD_PRE
+  fsdp_cpu_ram_efficient_loading: false
+  fsdp_forward_prefetch: false
+  fsdp_offload_params: false
+  fsdp_sharding_strategy: FULL_SHARD
+  fsdp_state_dict_type: FULL_STATE_DICT
+  fsdp_sync_module_states: true
+  fsdp_use_orig_params: true
+machine_rank: 0
+main_training_function: main
+mixed_precision: 'no'
+num_machines: 1
+num_processes: 2
+rdzv_backend: static
+same_network: true
+tpu_env: []
+tpu_use_cluster: false
+tpu_use_sudo: false
+use_cpu: false
